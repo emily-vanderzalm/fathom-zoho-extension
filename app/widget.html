@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fathom CRM Extension Settings</title>
+    <script src="https://live.zwidgets.com/js-sdk/1.1/ZohoEmbededAppSDK.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--color-background-primary); color: var(--color-text-primary); }
+        .widget { max-width: 680px; padding: 20px; margin: 0 auto; }
+        .tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 1.5rem; }
+        .tab { padding: 10px 20px; font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; color: var(--color-text-secondary); background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
+        .tab.active { color: var(--color-text-info); border-bottom-color: var(--color-text-info); }
+        .tab:hover:not(.active) { color: var(--color-text-primary); }
+        .section { display: none; }
+        .section.active { display: block; }
+        .card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .card-title { font-size: 14px; font-weight: 500; }
+        .card-subtitle { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+        .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 10px; border-radius: var(--border-radius-md); font-weight: 500; }
+        .badge-success { background: var(--color-background-success); color: var(--color-text-success); }
+        .badge-warning { background: var(--color-background-warning); color: var(--color-text-warning); }
+        .badge-info { background: var(--color-background-info); color: var(--color-text-info); }
+        .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .dot-green { background: #1D9E75; }
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .field input[type="text"], .field input[type="password"], .field select { width: 100%; padding: 8px 12px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 13px; }
+        .field input:focus, .field select:focus { border-color: var(--color-text-info); outline: none; }
+        .field-help { font-size: 11px; color: var(--color-text-tertiary); margin-top: 4px; }
+        .btn-row { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+        .btn-primary { background: var(--color-text-info); color: white; border: none; padding: 8px 20px; border-radius: var(--border-radius-md); font-size: 13px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: transparent; color: var(--color-text-secondary); border: 0.5px solid var(--color-border-secondary); padding: 8px 20px; border-radius: var(--border-radius-md); font-size: 13px; cursor: pointer; }
+        .btn-danger-text { background: none; border: none; color: var(--color-text-danger); font-size: 12px; cursor: pointer; padding: 4px 8px; }
+        .steps { display: flex; align-items: center; gap: 0; margin-bottom: 1.5rem; padding: 0 0.5rem; }
+        .step { display: flex; align-items: center; gap: 8px; }
+        .step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; border: 1.5px solid var(--color-border-tertiary); color: var(--color-text-tertiary); flex-shrink: 0; }
+        .step.completed .step-num { background: var(--color-background-success); border-color: transparent; color: var(--color-text-success); }
+        .step.current .step-num { background: var(--color-background-info); border-color: transparent; color: var(--color-text-info); }
+        .step-label { font-size: 12px; color: var(--color-text-tertiary); white-space: nowrap; }
+        .step.current .step-label { color: var(--color-text-primary); font-weight: 500; }
+        .step.completed .step-label { color: var(--color-text-success); }
+        .step-line { flex: 1; height: 1px; background: var(--color-border-tertiary); margin: 0 12px; min-width: 20px; }
+        .step-line.done { background: var(--color-text-success); }
+        .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .check-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px; transition: all 0.15s; background: var(--color-background-primary); }
+        .check-item:hover { border-color: var(--color-border-secondary); }
+        .check-item.selected { border-color: var(--color-text-info); background: var(--color-background-info); }
+        .check-item input { accent-color: var(--color-text-info); }
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1rem; }
+        .stat { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 1rem; }
+        .stat-label { font-size: 11px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .stat-value { font-size: 22px; font-weight: 500; }
+        .activity { padding: 10px 0; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: flex-start; gap: 10px; }
+        .activity:last-child { border-bottom: none; }
+        .activity-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; background: var(--color-background-info); color: var(--color-text-info); }
+        .activity-text { font-size: 13px; line-height: 1.5; }
+        .activity-time { font-size: 11px; color: var(--color-text-tertiary); }
+        .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 16px 0; }
+        .inline-alert { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--border-radius-md); font-size: 12px; line-height: 1.5; }
+        .inline-alert-info { background: var(--color-background-info); color: var(--color-text-info); }
+        .inline-alert-success { background: var(--color-background-success); color: var(--color-text-success); }
+        .view-toggle { display: flex; gap: 4px; background: var(--color-background-secondary); padding: 3px; border-radius: var(--border-radius-md); }
+        .view-btn { padding: 6px 14px; font-size: 12px; border: none; background: transparent; border-radius: 6px; cursor: pointer; color: var(--color-text-secondary); font-weight: 500; }
+        .view-btn.active { background: var(--color-background-primary); color: var(--color-text-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Set to display:flex during local sandbox testing if you want to toggle modes manually */
+        .dev-header { display: none; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px dashed var(--color-border-secondary); padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="widget">
+    <div class="dev-header" id="dev-controls">
+        <span style="font-size: 11px; color: var(--color-text-tertiary);">Dev View Override:</span>
+        <div class="view-toggle">
+            <button class="view-btn active" id="toggle-setup-btn" onclick="showView('setup')">Setup wizard</button>
+            <button class="view-btn" id="toggle-dash-btn" onclick="showView('dashboard')">Dashboard</button>
+        </div>
+    </div>
+
+    <div id="view-setup">
+        <div class="steps" id="step-indicators">
+            <div class="step current" data-step="1"><div class="step-num">1</div><div class="step-label">Connect</div></div>
+            <div class="step-line"></div>
+            <div class="step" data-step="2"><div class="step-num">2</div><div class="step-label">Meetings</div></div>
+            <div class="step-line"></div>
+            <div class="step" data-step="3"><div class="step-num">3</div><div class="step-label">CRM & Desk</div></div>
+        </div>
+
+        <div class="section active" id="step1">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Connect your Fathom account</div>
+                        <div class="card-subtitle">Enter your API key to link Fathom with your CRM</div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Fathom API key</label>
+                    <input type="password" placeholder="fathom_api_xxxxxxxxxxxxxxxx" id="api-key-input">
+                    <div class="field-help">Find this in <span style="color:var(--color-text-info)">fathom.video/customize</span> → API Access → Generate API Key</div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn-primary" id="test-btn" onclick="testConnection()">Test connection</button>
+                    <span id="conn-status" style="font-size:12px; margin-left: 10px;"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="step1-success">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <div><div class="card-title">Fathom account connected</div></div>
+                    <span class="badge badge-success"><span class="dot dot-green"></span> Connected</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:16px;padding:10px 14px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);margin-bottom:16px;">
+                    <div style="font-size:13px;"><span style="color:var(--color-text-secondary);">Account</span><br><span style="font-weight:500;" id="connected-account-name">Loading...</span></div>
+                    <div style="font-size:13px;margin-left:auto;text-align:right;"><span style="color:var(--color-text-secondary);">Available meetings</span><br><span style="font-weight:500;">247</span></div>
+                </div>
+                <div class="btn-row" style="justify-content:space-between">
+                    <button class="btn-primary" onclick="goToStep(2)">Next: choose which meetings to sync →</button>
+                    <button class="btn-danger-text" onclick="resetStep1()">Disconnect</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="step2">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Which meetings should sync to your CRM?</div>
+                        <div class="card-subtitle">Choose which recordings automatically create meeting note records</div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Sync meetings that are...</label>
+                    <div class="check-grid">
+                        <label class="check-item selected"><input type="checkbox" id="sync-own" checked> My own recordings</label>
+                        <label class="check-item selected"><input type="checkbox" id="sync-team" checked> Shared with my team</label>
+                        <label class="check-item"><input type="checkbox" id="sync-external"> Shared by external users</label>
+                        <label class="check-item"><input type="checkbox" id="sync-all"> All team recordings</label>
+                    </div>
+                </div>
+                <hr class="divider">
+                <div class="field">
+                    <label>What to capture from each meeting</label>
+                    <div class="check-grid">
+                        <label class="check-item selected"><input type="checkbox" checked disabled> Full transcript</label>
+                        <label class="check-item selected"><input type="checkbox" checked disabled> AI summary</label>
+                        <label class="check-item selected"><input type="checkbox" checked disabled> Action items</label>
+                        <label class="check-item selected"><input type="checkbox" checked disabled> CRM contact matches</label>
+                    </div>
+                </div>
+                <div class="inline-alert inline-alert-info" style="margin-top:4px;">
+                    <span style="flex-shrink:0">ℹ</span>
+                    <span>New meetings will appear in your CRM automatically within seconds of the recording ending. You can also run a manual sync anytime from the dashboard.</span>
+                </div>
+                <div class="btn-row">
+                    <button class="btn-primary" onclick="goToStep(3)">Next: CRM & Desk settings →</button>
+                    <button class="btn-secondary" onclick="goToStep(1)">← Back</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="step3">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Where should meeting data go?</div>
+                        <div class="card-subtitle">Configure how meetings are stored in CRM and Desk</div>
+                    </div>
+                </div>
+
+                <div style="font-size:13px;font-weight:500;margin-bottom:10px;color:var(--color-text-secondary);">CRM</div>
+                <div class="field">
+                    <label>Contact matching</label>
+                    <select id="crm-matching-select">
+                        <option value="email" selected>Match attendees to contacts by email</option>
+                        <option value="domain">Match by email domain (broader)</option>
+                        <option value="none">Don't auto-match contacts</option>
+                    </select>
+                    <div class="field-help">When a meeting attendee's email matches a CRM contact, the meeting note is linked to that contact and their account.</div>
+                </div>
+
+                <hr class="divider">
+
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                    <div><div style="font-size:13px;font-weight:500;color:var(--color-text-secondary);">Zoho Desk</div></div>
+                    <label style="position:relative;width:40px;height:22px;display:block;cursor:pointer;" id="desk-toggle">
+                        <input type="checkbox" id="desk-master-checkbox" checked style="opacity:0;width:0;height:0;position:absolute;" onchange="toggleDesk(this.checked)">
+                        <span style="position:absolute;inset:0;background:var(--color-text-success);border-radius:11px;transition:0.2s;"></span>
+                        <span style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:0.2s;transform:translateX(18px);"></span>
+                    </label>
+                </div>
+                <div id="desk-fields">
+                    <div class="field">
+                        <label>Create a Desk ticket for each meeting?</label>
+                        <div class="field-help" style="margin-top:0;margin-bottom:10px;">A ticket is created with the meeting summary, action items, and a link to the full recording.</div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="field" style="margin-bottom:0">
+                            <label>Department</label>
+                            <select id="desk-dept-select">
+                                <option>General</option>
+                                <option>Client Services</option>
+                                <option selected>Support</option>
+                            </select>
+                        </div>
+                        <div class="field" style="margin-bottom:0">
+                            <label>Priority</label>
+                            <select id="desk-priority-select">
+                                <option selected>Normal</option>
+                                <option>High</option>
+                                <option>Low</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-row" style="margin-top:20px;">
+                    <button class="btn-primary" id="finish-btn" onclick="finishSetup()">Finish setup</button>
+                    <button class="btn-secondary" onclick="goToStep(2)">← Back</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="step3-saving">
+            <div class="card" style="text-align:center;padding:2.5rem 2rem;">
+                <div id="saving-state">
+                    <div style="width:40px;height:40px;border:3px solid var(--color-border-tertiary);border-top-color:var(--color-text-info);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 16px;"></div>
+                    <div style="font-size:14px;font-weight:500;margin-bottom:4px;">Setting things up...</div>
+                    <div style="font-size:12px;color:var(--color-text-secondary);" id="setup-status">Saving configurations to Zoho...</div>
+                </div>
+                <div id="done-state" style="display:none;">
+                    <div style="width:48px;height:48px;border-radius:50%;background:var(--color-background-success);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:20px;color:var(--color-text-success);">✓</div>
+                    <div style="font-size:16px;font-weight:500;margin-bottom:6px;">You're all set</div>
+                    <div style="font-size:13px;color:var(--color-text-secondary);max-width:420px;margin:0 auto 20px;line-height:1.6;">New Fathom meetings will automatically create records in your CRM and Desk tickets. Record a quick test meeting to see it in action.</div>
+                    <div class="btn-row" style="justify-content:center;gap:12px;">
+                        <button class="btn-primary" onclick="showView('dashboard')">Go to dashboard</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-dashboard" style="display:none">
+        <div class="stat-grid">
+            <div class="stat"><div class="stat-label">Meetings synced</div><div class="stat-value" id="stat-count">247</div></div>
+            <div class="stat"><div class="stat-label">Desk tickets</div><div class="stat-value" id="stat-tickets">183</div></div>
+            <div class="stat"><div class="stat-label">Contacts matched</div><div class="stat-value">94%</div></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Status</div>
+                <span class="badge badge-success"><span class="dot dot-green"></span> Syncing automatically</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;font-size:12px;">
+                <div style="padding:8px 0;"><span style="color:var(--color-text-secondary);">Fathom account</span><br><span style="font-weight:500;" id="dash-account-name">Connected</span></div>
+                <div style="padding:8px 0;"><span style="color:var(--color-text-secondary);">Syncing Scope</span><br><span style="font-weight:500;" id="dash-sync-scope">Active preferences</span></div>
+                <div style="padding:8px 0;"><span style="color:var(--color-text-secondary);">Last sync</span><br><span style="font-weight:500;">Just now</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Recent meetings</div>
+                <button class="btn-
