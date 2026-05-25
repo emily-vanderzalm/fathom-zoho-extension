@@ -61,7 +61,7 @@ function handleTestConnection() {
         "custom_parameters": payloadData
     };
 
-    console.log("Sending clean REST format payload to Zoho:", executionBody);
+    console.log("Sending clean REST format payload to Zoho:", executionBody.toString(), executionBody);
 
     ZOHO.CRM.FUNCTIONS.execute("fathomaimeetingnotesintegration0__register_fathom_webhook", executionBody)
     .then(function(execData) {
