@@ -454,9 +454,17 @@
         // Marshall variable strings targets values metrics
         configState.api_key = keyInputValueStr;
 
+        const payloadData = {
+            "action_type": "test_connection",
+            "api_key_override": keyInputValueStr
+        };
+
         // Call the core worker module to contact Fathom backend platform gateways
-        ZOHO.CRM.FUNCTIONS.execute("sync_Meetings", { "test_connection_only": "true", "api_key_override": keyInputValueStr })
-        .then(function(execData) {
+        ZOHO.CRM.FUNCTIONS.execute("registerFathomWebhook", { 
+            "arguments": JSON.stringify({
+                "custom_parameters": payloadData
+            })
+        }).then(function(execData) {
             const outMap = JSON.parse(execData.details.output);
             btn.disabled = false;
             btn.innerHTML = "Test Connection";
