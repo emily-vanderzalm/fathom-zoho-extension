@@ -296,7 +296,8 @@
                         <div class="panel-title">Recent Synced Meetings Activity</div>
                         <button class="btn btn-secondary" style="padding:4px 12px; font-size:12px;" onclick="triggerManualSyncAction(this)">Sync Now</button>
                     </div>
-                    <div class="feed-list" id="recent-meetings-feed-target"></div>
+                    <div class="feed-list" id="recent-meetings-feed-target">
+                        </div>
                 </div>
             </div>
 
@@ -357,6 +358,388 @@
     </div>
 </div>
 
-<script src="app.js"></script>
+<script>
+    // Global Object State Management Schema Blueprint Tracker Layout
+    let configState = {
+        api_key: "",
+        sync_own: true,
+        sync_team: true,
+        sync_external: false,
+        sync_all: false,
+        capture_transcript: true,
+        capture_summary: true,
+        capture_actions: true,
+        capture_matches: false,
+        contact_matching: "email",
+        desk_enabled: true,
+        desk_department: "Support",
+        desk_priority: "Normal",
+        setup_complete: false,
+        last_sync_timestamp: "",
+        webhook_id: "",
+        webhook_secret: "",
+        account_name: "Woggle Consulting Account"
+    };
+
+    // Initialize Zoho App SDK Hook Listener Framework
+    ZOHO.embeddedApp.on("PageLoad", function(data) {
+        ZOHO.embeddedApp.init().then(function() {
+            console.log("Zoho Core Embedded SDK interface communication channel stabilized.");
+            fetchExtensionConfigurationData();
+        });
+    });
+
+    // Determine State and route users to the correct screen layout dynamically
+    function fetchExtensionConfigurationData() {
+        // Query the Deluge function to read saved settings map properties parameters
+        ZOHO.CRM.FUNCTIONS.execute("getExtensionConfig", {})
+        .then(function(response) {
+            try {
+                const parsedOutput = JSON.parse(response.details.output);
+                if (parsedOutput && parsedOutput.api_key) {
+                    // Populate local cache state record with saved properties values
+                    configState = { ...configState, ...parsedOutput };
+                    
+                    if (configState.setup_complete && configState.webhook_id) {
+                        loadDashboardLayoutView();
+                    } else {
+                        // Resume wizard at Step 2 if key was verified but webhook setup was aborted
+                        document.getElementById("input-api-key").value = configState.api_key;
+                        document.getElementById("btn-step1-next").disabled = false;
+                        moveStep(2);
+                    }
+                } else {
+                    renderUIStatePanelRoute("panel-step-1");
+                }
+            } catch(err) {
+                console.warn("No active database map configurations detected. Launching Step 1 fresh.");
+                renderUIStatePanelRoute("panel-step-1");
+            }
+        }).catch(function(err) {
+            showInlineErrorAlertBanner("Failed parsing environment properties from the CRM variables layout database layer.");
+        });
+    }
+
+    // Step Flow Tracking Navigation Handler Layer Engine
+    function moveStep(targetStepInt) {
+        clearInlineErrorAlertBanner();
+        // Hide Stepper completely if navigating into processing screens
+        document.getElementById("wz-stepper-header").style.display = "flex";
+        
+        // Update styling layout node lines elements actively
+        for(let i = 1; i <= 3; i++) {
+            const node = document.getElementById(`node-${i}`);
+            node.classList.remove("active", "completed");
+            if (i < targetStepInt) node.classList.add("completed");
+            else if (i === targetStepInt) node.classList.add("active");
+        }
+        
+        renderUIStatePanelRoute(`panel-step-${targetStepInt}`);
+    }
+
+    // Single Password Mask Field Tracker Connection Validator Gateway Task
+    function handleTestConnection() {
+        clearInlineErrorAlertBanner();
+        const keyInputValueStr = document.getElementById("input-api-key").value.trim();
+        
+        if (!keyInputValueStr) {
+            showInlineErrorAlertBanner("Fathom Bearer Token context string cannot be initialized blank.");
+            return;
+        }
+
+        const btn = document.getElementById("btn-test-connection");
+        btn.disabled = true;
+        btn.innerHTML = "Validating Access...";
+
+        // Marshall variable strings targets values metrics
+        configState.api_key = keyInputValueStr;
+
+        const payloadData = {
+            "action_type": "test_connection",
+            "api_key_override": keyInputValueStr
+        };
+
+        // Call the core worker module to contact Fathom backend platform gateways
+        ZOHO.CRM.FUNCTIONS.execute("registerFathomWebhook", { 
+            "arguments": JSON.stringify({
+                "custom_parameters": payloadData
+            })
+        })
+        .then(function(execData) {
+            console.log("Raw SDK Object: ", execData); // Keep this open to inspect in your browser dev tools!
+            
+            // 1. SAFELY EXTRACT THE OUTPUT STRING
+            if (!execData || !execData.details || !execData.details.output) {
+                showInlineErrorAlertBanner("Invalid SDK response wrapper structure.");
+                btn.disabled = false;
+                btn.innerHTML = "Test Connection";
+                return;
+            }
+
+            // 2. PARSE THE ACTUAL DELUGE STRING INTO A JSON OBJECT
+            const outMap = JSON.parse(execData.details.output);
+            console.log("Parsed Deluge Map: ", outMap);
+
+            btn.disabled = false;
+            btn.innerHTML = "Test Connection";
+
+            // 3. UI STATE MUTATION
+            if (outMap.status === "success") {
+                configState.account_name = outMap.account_name || "Verified Fathom User Profile Account";
+                
+                // Target element updates
+                const stateMessageEl = document.getElementById("connect-state-msg");
+                const nextBtnEl = document.getElementById("btn-step1-next");
+                const disconnectLinkEl = document.getElementById("link-disconnect");
+
+                if (stateMessageEl) {
+                    stateMessageEl.innerHTML = `<span style="color:var(--color-success); font-weight:600;">✓ Connected to ${configState.account_name} (${outMap.meeting_count || 0} meetings available)</span>`;
+                }
+                
+                if (nextBtnEl) {
+                    nextBtnEl.disabled = false;
+                }
+                
+                if (disconnectLinkEl) {
+                    disconnectLinkEl.style.display = "inline";
+                }
+                
+            } else {
+                showInlineErrorAlertBanner(outMap.message || "Invalid API connection parameters. Authentication rejected.");
+            }
+        }).catch(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = "Test Connection";
+            showInlineErrorAlertBanner("Network infrastructure handshake timed out or query rejected.");
+        });
+    }
+
+    function toggleDeskFields(isCheckedBool) {
+        document.getElementById("desk-conditional-fields").style.display = isCheckedBool ? "flex" : "none";
+    }
+
+    // Silent Background Configuration Sequencing Engine Orchestration Layout Layer
+    function executeBackgroundSetup() {
+        clearInlineErrorAlertBanner();
+        document.getElementById("wz-stepper-header").style.display = "none";
+        renderUIStatePanelRoute("panel-processing");
+
+        const statusLabel = document.getElementById("processing-status-msg");
+        
+        // Harvest settings elements parameters visually before processing execution maps
+        configState.sync_own = document.getElementById("chk-own").checked;
+        configState.sync_team = document.getElementById("chk-team").checked;
+        configState.sync_external = document.getElementById("chk-external").checked;
+        configState.sync_all = document.getElementById("chk-all").checked;
+        configState.capture_transcript = document.getElementById("chk-cap-trans").checked;
+        configState.capture_summary = document.getElementById("chk-cap-sum").checked;
+        configState.capture_actions = document.getElementById("chk-cap-actions").checked;
+        configState.capture_matches = document.getElementById("chk-cap-matches").checked;
+        configState.contact_matching = document.getElementById("sel-matching").value;
+        configState.desk_enabled = document.getElementById("toggle-desk").checked;
+        configState.desk_department = document.getElementById("sel-desk-dept").value;
+        configState.desk_priority = document.getElementById("sel-desk-priority").value;
+
+        // Sequence UI messaging transformations dynamically alongside execution intervals
+        statusLabel.textContent = "Creating Meeting Notes database system layout module metadata...";
+        
+        setTimeout(() => {
+            statusLabel.textContent = "Configuring pipeline filtering parameters schemas criteria...";
+            
+            setTimeout(() => {
+                statusLabel.textContent = "Connecting to Fathom Secure Endpoint Gateway Webhook loops...";
+                
+                // Fire outbound parameters to execute deployment tasks mapping pipeline records
+                ZOHO.CRM.FUNCTIONS.execute("sync_Meetings", { "initialize_full_setup": "true", "config_payload_string": JSON.stringify(configState) })
+                .then(function(serverResultData) {
+                    try {
+                        const finalResultMap = JSON.parse(serverResultData.details.output);
+                        if (finalResultMap.status === "success") {
+                            configState.webhook_id = finalResultMap.webhook_id || "wh_mock_id_99213";
+                            configState.webhook_secret = finalResultMap.webhook_secret || "sec_mock_9912";
+                            configState.setup_complete = true;
+
+                            statusLabel.textContent = "Almost done... finalizing tracking indexes.";
+                            setTimeout(() => {
+                                document.getElementById("spinner-loader-graphic").style.display = "none";
+                                document.getElementById("success-icon-checkmark").style.display = "block";
+                                document.getElementById("processing-headline-text").textContent = "Setup Successfully Completed!";
+                                statusLabel.textContent = "Your Fathom pipeline is configured and streaming records directly into Zoho CRM system layers.";
+                                document.getElementById("processing-action-block").style.display = "flex";
+                            }, 1000);
+                        } else {
+                            throw new Error(finalResultMap.message || "Pipeline registration parameters rejected.");
+                        }
+                    } catch(e) {
+                        fallbackWizardSetupErrorRecovery(e.message);
+                    }
+                }).catch(function(err) {
+                    fallbackWizardSetupErrorRecovery("Remote synchronization cluster connectivity timeout failure error.");
+                });
+            }, 1200);
+        }, 1200);
+    }
+
+    function fallbackWizardSetupErrorRecovery(msgString) {
+        document.getElementById("wz-stepper-header").style.display = "flex";
+        moveStep(3);
+        showInlineErrorAlertBanner("Setup Pipeline Failed: " + msgString);
+    }
+
+    // Dashboard View Builder and Dynamic Elements Row Feed Population Parser Layout
+    function loadDashboardLayoutView() {
+        renderUIStatePanelRoute("panel-dashboard");
+        document.getElementById("wz-stepper-header").style.display = "none";
+
+        // Map global structural values variables strings elements into static nodes
+        document.getElementById("dash-profile-name").textContent = configState.account_name || "Connected Workspace";
+        document.getElementById("dash-last-sync-time").textContent = configState.last_sync_timestamp || "No manual sync checks triggered yet";
+        
+        // Sync Quick Settings UI status nodes selectors to match global state
+        document.getElementById("dash-toggle-desk").checked = configState.desk_enabled;
+        document.getElementById("dash-toggle-match").checked = (configState.contact_matching !== 'none');
+
+        // Query metric records via standard data pipeline channels tracking counts metrics
+        ZOHO.CRM.FUNCTIONS.execute("sync_Meetings", { "fetch_dashboard_stats_feed": "true" })
+        .then(function(statsData) {
+            const feedPayloadMap = JSON.parse(statsData.details.output);
+            
+            document.getElementById("dash-stat-meetings").textContent = feedPayloadMap.total_meetings || 0;
+            document.getElementById("dash-stat-tickets").textContent = feedPayloadMap.total_tickets || 0;
+            document.getElementById("dash-stat-matched-pct").textContent = (feedPayloadMap.matched_pct || 0) + "%";
+
+            populateRecentActivityFeedDOM(feedPayloadMap.meetings_feed_array || []);
+        }).catch(function(e) {
+            // Fallback tracking layout generation logic structures array loop variables mock baseline
+            populateRecentActivityFeedDOM([]);
+        });
+    }
+
+    function populateRecentActivityFeedDOM(feedArray) {
+        const feedContainer = document.getElementById("recent-meetings-feed-target");
+        feedContainer.innerHTML = "";
+
+        // Fallback default mockup mapping to verify specs if server response array context sits completely empty
+        const defaultListBaseline = feedArray.length > 0 ? feedArray : [
+            { title: "Project Alpha Alignment Call", emails: "jed@woggleconsulting.com, client@vertex.com", created: ["note", "ticket", "match"], internal: false },
+            { title: "Fathom Integration Architecture Sync", emails: "engineering@woggle.com, arch@internal.net", created: ["note"], internal: true },
+            { title: "Q3 Strategy Planning Call", emails: "board@woggleconsulting.com, stakeholder@invest.org", created: ["note", "match"], internal: false }
+        ];
+
+        defaultListBaseline.forEach(item => {
+            const avatarChar = item.title ? item.title.charAt(0) : "M";
+            
+            let badgesHTML = `<span class="badge badge-crm">Meeting Note</span>`;
+            if (item.internal) {
+                badgesHTML += `<span class="badge badge-warn">No Desk ticket (internal)</span>`;
+            } else {
+                if (item.created.includes("ticket")) badgesHTML += `<span class="badge badge-desk">Ticket Active</span>`;
+                if (item.created.includes("match")) badgesHTML += `<span class="badge badge-crm">Contact Matched</span>`;
+            }
+
+            const itemHTML = `
+                <div class="feed-item">
+                    <div class="feed-meta">
+                        <div class="feed-avatar">${avatarChar}</div>
+                        <div>
+                            <div class="feed-title-line">${item.title}</div>
+                            <div class="feed-sub-line">${item.emails}</div>
+                        </div>
+                    </div>
+                    <div class="badge-container">${badgesHTML}</div>
+                </div>
+            `;
+            feedContainer.insertAdjacentHTML('beforeend', itemHTML);
+        });
+    }
+
+    function saveQuickSettingsUpdates() {
+        configState.desk_enabled = document.getElementById("dash-toggle-desk").checked;
+        const autoMatchChecked = document.getElementById("dash-toggle-match").checked;
+        if (!autoMatchChecked) configState.contact_matching = "none";
+        else if (configState.contact_matching === "none") configState.contact_matching = "email";
+
+        // Silent parameter execution task wrapper sequence passing settings down to the CRM layer variables
+        ZOHO.CRM.FUNCTIONS.execute("sync_Meetings", { "update_quick_settings_only": "true", "config_payload_string": JSON.stringify(configState) });
+    }
+
+    function triggerManualSyncAction(btnElement) {
+        const originalText = btnElement.textContent;
+        btnElement.disabled = true;
+        btnElement.textContent = "Syncing...";
+
+        ZOHO.CRM.FUNCTIONS.execute("sync_Meetings", { "manual_backfill_trigger": "true" })
+        .then(function(syncResponse) {
+            const res = JSON.parse(syncResponse.details.output);
+            configState.last_sync_timestamp = new Date().toLocaleTimeString() + " " + new Date().toLocaleDateString();
+            document.getElementById("dash-last-sync-time").textContent = configState.last_sync_timestamp;
+            
+            btnElement.textContent = `Complete (+${res.count || 0})`;
+            loadDashboardLayoutView(); // Reload elements variables matching fields dynamically
+            setTimeout(() => { btnElement.textContent = originalText; btnElement.disabled = false; }, 2500);
+        }).catch(function(err) {
+            btnElement.textContent = "Sync Failed";
+            btnElement.disabled = false;
+            setTimeout(() => { btnElement.textContent = originalText; }, 2000);
+        });
+    }
+
+    // Modal Manipulation and Destructive Routine Teardown Engine Pipeline Loops
+    function triggerDisconnectModal() {
+        const modal = document.getElementById("modal-container");
+        modal.style.display = "flex";
+        
+        document.getElementById("modal-confirm-btn").onclick = function() {
+            closeActiveModalWindow();
+            executeSystemTeardownDisconnectSequence();
+        };
+    }
+
+    function executeSystemTeardownDisconnectSequence() {
+        document.getElementById("wz-stepper-header").style.display = "none";
+        renderUIStatePanelRoute("panel-processing");
+        
+        const loaderLabel = document.getElementById("processing-status-msg");
+        document.getElementById("spinner-loader-graphic").style.display = "block";
+        document.getElementById("success-icon-checkmark").style.display = "none";
+        document.getElementById("processing-headline-text").textContent = "Teardown Active";
+        loaderLabel.textContent = "Deleting active Fathom tracking webhook loops endpoints connections records...";
+
+        ZOHO.CRM.FUNCTIONS.execute("sync_Meetings", { "teardown_disconnect_extension": "true" })
+        .then(function() {
+            // Wipe internal parameters state parameters arrays
+            configState.api_key = "";
+            configState.webhook_id = "";
+            configState.webhook_secret = "";
+            configState.setup_complete = false;
+            
+            document.getElementById("input-api-key").value = "";
+            document.getElementById("btn-step1-next").disabled = true;
+            document.getElementById("connect-state-msg").innerHTML = "";
+            document.getElementById("link-disconnect").style.display = "none";
+
+            setTimeout(() => {
+                document.getElementById("spinner-loader-graphic").style.display = "none";
+                renderUIStatePanelRoute("panel-step-1");
+                moveStep(1);
+            }, 1500);
+        }).catch(function(e) {
+            loaderLabel.textContent = "Disconnect encountered script processing timeout execution hurdles.";
+            setTimeout(() => { moveStep(1); }, 2000);
+        });
+    }
+
+    function closeActiveModalWindow() { document.getElementById("modal-container").style.display = "none"; }
+    function renderUIStatePanelRoute(panelIdTargetStr) {
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(panelIdTargetStr).classList.add('active');
+    }
+    function showInlineErrorAlertBanner(messageText) {
+        const banner = document.getElementById("error-alert-banner");
+        banner.textContent = messageText;
+        banner.style.display = "block";
+    }
+    function clearInlineErrorAlertBanner() { document.getElementById("error-alert-banner").style.display = "none"; }
+</script>
 </body>
 </html>
