@@ -52,13 +52,13 @@ function handleTestConnection() {
 
     configState.api_key = keyInputValueStr;
 
-    const payloadData = {
+    const payloadData = JSON.stringify({
         "action_type": "test_connection",
         "api_key_override": keyInputValueStr
-    };
+    });
 
     const executionBody = {
-        "custom_parameters": payloadData
+        "arguments": payloadData
     };
 
     console.log("Sending clean REST format payload to Zoho:", executionBody.toString(), executionBody);
