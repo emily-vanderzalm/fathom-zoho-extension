@@ -58,11 +58,7 @@ function handleTestConnection() {
     };
 
     const executionBody = {
-        "crmAPIRequest": JSON.stringify({
-            "body": JSON.stringify({
-                "custom_parameters": payloadData
-            })
-        })
+        "custom_parameters": payloadData
     };
 
     console.log("Sending clean REST format payload to Zoho:", executionBody);
