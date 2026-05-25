@@ -93,6 +93,7 @@ function handleTestConnection() {
     }).catch(function(err) {
         btn.disabled = false;
         btn.innerHTML = "Test Connection";
+        console.error("Error during connection test execution:", err);
         showInlineErrorAlertBanner("Network infrastructure handshake timed out or query rejected.");
     });
 }
