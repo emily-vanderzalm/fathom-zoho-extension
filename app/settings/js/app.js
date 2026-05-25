@@ -20,42 +20,6 @@ let configState = {
     account_name: "Woggle Consulting Account"
 };
 
-// Initialize Zoho App SDK Hook Listener Framework
-ZOHO.embeddedApp.on("PageLoad", function(data) {
-    ZOHO.embeddedApp.init().then(function() {
-        console.log("Zoho Core Embedded SDK interface communication channel stabilized.");
-        fetchExtensionConfigurationData();
-    });
-});
-
-// Determine State and route users to the correct screen layout dynamically
-function fetchExtensionConfigurationData() {
-    ZOHO.CRM.FUNCTIONS.execute("getExtensionConfig", {})
-    .then(function(response) {
-        try {
-            const parsedOutput = JSON.parse(response.details.output);
-            if (parsedOutput && parsedOutput.api_key) {
-                configState = { ...configState, ...parsedOutput };
-                
-                if (configState.setup_complete && configState.webhook_id) {
-                    loadDashboardLayoutView();
-                } else {
-                    document.getElementById("input-api-key").value = configState.api_key;
-                    document.getElementById("btn-step1-next").disabled = false;
-                    moveStep(2);
-                }
-            } else {
-                renderUIStatePanelRoute("panel-step-1");
-            }
-        } catch(err) {
-            console.warn("No active database map configurations detected. Launching Step 1 fresh.");
-            renderUIStatePanelRoute("panel-step-1");
-        }
-    }).catch(function(err) {
-        showInlineErrorAlertBanner("Failed parsing environment properties from the CRM variables layout database layer.");
-    });
-}
-
 // Step Flow Tracking Navigation Handler Layer Engine
 function moveStep(targetStepInt) {
     clearInlineErrorAlertBanner();
