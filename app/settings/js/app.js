@@ -58,8 +58,10 @@ function handleTestConnection() {
     };
 
     ZOHO.CRM.FUNCTIONS.execute("register_fathom_webhook", { 
-        "arguments": JSON.stringify({
-            "custom_parameters": payloadData
+        "crmAPIRequest": JSON.stringify({
+            "body": JSON.stringify({
+                "custom_parameters": payloadData
+            })
         })
     })
     .then(function(execData) {
