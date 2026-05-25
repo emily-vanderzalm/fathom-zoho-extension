@@ -294,7 +294,5 @@ console.log("App.js loaded. Initializing Zoho SDK Handshake...");
 
 ZOHO.embeddedApp.init().then(function() {
     console.log("Zoho SDK successfully connected to parent window.");
-    
-    // Everything is now loaded and the secure bridge is established.
-    // It is 100% safe to interact with the widget now.
+    document.getElementById("btn-test-connection").disabled = false;
 });
