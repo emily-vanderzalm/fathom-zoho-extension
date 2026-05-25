@@ -84,7 +84,7 @@ function handleTestConnection() {
             const disconnectLinkEl = document.getElementById("link-disconnect");
 
             if (stateMessageEl) {
-                stateMessageEl.innerHTML = `<span style="color:var(--color-success); font-weight:600;">✓ Connected to ${configState.account_name} (${outMap.meeting_count || 0} meetings available)</span>`;
+                stateMessageEl.innerHTML = `<span style="color:var(--color-success); font-weight:600;">✓ Connected to ${configState.account_name} </span>`;
             }
             if (nextBtnEl) nextBtnEl.disabled = false;
             if (disconnectLinkEl) disconnectLinkEl.style.display = "inline";
