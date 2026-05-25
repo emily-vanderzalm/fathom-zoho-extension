@@ -464,16 +464,46 @@
             "arguments": JSON.stringify({
                 "custom_parameters": payloadData
             })
-        }).then(function(execData) {
+        })
+        .then(function(execData) {
+            console.log("Raw SDK Object: ", execData); // Keep this open to inspect in your browser dev tools!
+            
+            // 1. SAFELY EXTRACT THE OUTPUT STRING
+            if (!execData || !execData.details || !execData.details.output) {
+                showInlineErrorAlertBanner("Invalid SDK response wrapper structure.");
+                btn.disabled = false;
+                btn.innerHTML = "Test Connection";
+                return;
+            }
+
+            // 2. PARSE THE ACTUAL DELUGE STRING INTO A JSON OBJECT
             const outMap = JSON.parse(execData.details.output);
+            console.log("Parsed Deluge Map: ", outMap);
+
             btn.disabled = false;
             btn.innerHTML = "Test Connection";
 
+            // 3. UI STATE MUTATION
             if (outMap.status === "success") {
                 configState.account_name = outMap.account_name || "Verified Fathom User Profile Account";
-                document.getElementById("connect-state-msg").innerHTML = `<span style="color:var(--color-success); font-weight:600;">✓ Connected to ${configState.account_name} (${outMap.meeting_count || 0} meetings available)</span>`;
-                document.getElementById("btn-step1-next").disabled = false;
-                document.getElementById("link-disconnect").style.display = "inline";
+                
+                // Target element updates
+                const stateMessageEl = document.getElementById("connect-state-msg");
+                const nextBtnEl = document.getElementById("btn-step1-next");
+                const disconnectLinkEl = document.getElementById("link-disconnect");
+
+                if (stateMessageEl) {
+                    stateMessageEl.innerHTML = `<span style="color:var(--color-success); font-weight:600;">✓ Connected to ${configState.account_name} (${outMap.meeting_count || 0} meetings available)</span>`;
+                }
+                
+                if (nextBtnEl) {
+                    nextBtnEl.disabled = false;
+                }
+                
+                if (disconnectLinkEl) {
+                    disconnectLinkEl.style.display = "inline";
+                }
+                
             } else {
                 showInlineErrorAlertBanner(outMap.message || "Invalid API connection parameters. Authentication rejected.");
             }
