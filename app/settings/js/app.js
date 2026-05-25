@@ -66,8 +66,8 @@ function handleTestConnection() {
     };
 
     console.log("Sending clean REST format payload to Zoho:", executionBody);
-    
-    ZOHO.CRM.FUNCTIONS.execute("register_fathom_webhook", executionBody)
+
+    ZOHO.CRM.FUNCTIONS.execute("fathomaimeetingnotesintegration0__register_fathom_webhook", executionBody)
     .then(function(execData) {
         if (!execData || !execData.details || !execData.details.output) {
             showInlineErrorAlertBanner("Invalid SDK response wrapper structure.");
