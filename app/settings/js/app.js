@@ -138,12 +138,11 @@ function executeBackgroundSetup() {
                 "action_type": "register_webhook",
                 "config_payload_string": configState
             };
+            executionBody = {
+                "arguments": JSON.stringify(payloadData)
+            };
 
-            ZOHO.CRM.FUNCTIONS.execute("registerFathomWebhook", { 
-                "arguments": JSON.stringify({
-                    "custom_parameters": payloadData
-                })
-            })
+            ZOHO.CRM.FUNCTIONS.execute("fathomaimeetingnotesintegration0__register_fathom_webhook", executionBody)
             .then(function(serverResultData) {
                 try {
                     const finalResultMap = JSON.parse(serverResultData.details.output);
@@ -232,7 +231,7 @@ function confirmDestructiveDisconnect() {
     
     const payloadData = { "action_type": "teardown_disconnect" };
 
-    ZOHO.CRM.FUNCTIONS.execute("registerFathomWebhook", { 
+    ZOHO.CRM.FUNCTIONS.execute("fathomaimeetingnotesintegration0__register_fathom_webhook", { 
         "arguments": JSON.stringify({
             "custom_parameters": payloadData
         })
