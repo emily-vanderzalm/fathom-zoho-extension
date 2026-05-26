@@ -261,23 +261,37 @@ console.log("App.js loaded. Initializing Zoho SDK Handshake...");
 ZOHO.embeddedApp.init().then(function() {
     console.log("Zoho SDK connection established successfully.");
     
-    // 1. Clear out any error banner messages displayed on screen from old crashes
     const errorBanner = document.getElementById("error-alert-banner");
     if (errorBanner) {
         errorBanner.style.display = "none";
     }
     
-    // 2. Safely ensure Step 1 view panel is active
     const step1Panel = document.getElementById("panel-step-1");
     if (step1Panel) {
         step1Panel.classList.add("active");
     }
     
-    // 3. Enable your "Test Connection" button now that the SDK is ready
     const testBtn = document.getElementById("btn-test-connection");
     if (testBtn) {
         testBtn.disabled = false;
     }
+
+    ZOHO.CRM.CONFIG.getOrgInfo().then(function(orgDetails) {
+        if (orgDetails && orgDetails.org && orgDetails.org.api_domain) {
+            const detectedDomain = orgDetails.org.api_domain;
+            console.log("Detected User Datacenter Domain Location:", detectedDomain);
+
+            // Execute a completely silent function call to lock this variable into CRM
+            ZOHO.CRM.FUNCTIONS.execute("fathomaimeetingnotesintegration0__register_fathom_webhook", {
+                "arguments": JSON.stringify({
+                    "action_type": "save_api_domain",
+                    "api_domain_value": detectedDomain
+                })
+            })
+            .then(res => console.log("Silent domain mapping updated successfully."))
+            .catch(err => console.error("Silent domain mapping failure:", err));
+        }
+    });
     
     console.log("Widget is fully booted and ready for user interaction.");
 });
