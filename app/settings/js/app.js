@@ -179,17 +179,139 @@ function handleSetupFailureFallback(errorString) {
 }
 
 // Dashboard View Initializer Module
-function loadDashboardLayoutView() {
+async function loadDashboardLayoutView() {
+    // Hide wizard stepper controls header element
     document.getElementById("wz-stepper-header").style.display = "none";
     renderUIStatePanelRoute("panel-dashboard");
     
-    document.getElementById("dash-profile-name").textContent = configState.account_name;
+    // 1. Assign configuration context text strings
+    document.getElementById("dash-profile-name").textContent = configState.account_name || "Connected Profile";
     document.getElementById("dash-last-sync-time").textContent = configState.last_sync_timestamp || "Awaiting incoming syncs...";
     
-    // Static visual mock counters fallback renderers
-    document.getElementById("dash-stat-meetings").textContent = "14";
-    document.getElementById("dash-stat-tickets").textContent = configState.desk_enabled ? "3" : "0";
-    document.getElementById("dash-stat-matched-pct").textContent = "85%";
+    // 2. Synchronize Quick Adjustments Switch states with active config settings
+    document.getElementById("dash-toggle-desk").checked = !!configState.desk_enabled;
+    document.getElementById("dash-toggle-match").checked = !!configState.capture_matches;
+    document.getElementById("dash-toggle-internal").checked = !!configState.sync_all;
+
+    // 3. Populate Interactive Statistics and Recent Activity Stream Lists
+    await renderLiveDashboardMetrics();
+    await renderRecentMeetingsActivityFeed();
+}
+
+async function renderLiveDashboardMetrics() {
+    try {
+        // Fetch raw metrics records from the Custom Module database table layer
+        const result = await ZOHO.CRM.API.getAllRecords({
+            Entity: "fathomaimeetingnotesintegration0__Meeting_Notes",
+            sort_order: "desc",
+            per_page: 100,
+            page: 1
+        });
+        
+        let totalMeetingsCount = 0;
+        let deskTicketsCount = 0;
+        let matchedContactsCount = 0;
+        
+        if (result && result.data) {
+            totalMeetingsCount = result.data.length;
+            
+            // Loop data arrays to dynamically extract context field increments
+            result.data.forEach(record => {
+                if (record.fathomaimeetingnotesintegration0__Ticket_ID || record.fathomaimeetingnotesintegration0__Desk_Status) {
+                    deskTicketsCount++;
+                }
+                if (record.fathomaimeetingnotesintegration0__Contact_Lookup) {
+                    matchedContactsCount++;
+                }
+            });
+        }
+        
+        // Calculate percentages safely
+        const matchedPercentage = totalMeetingsCount > 0 
+            ? Math.round((matchedContactsCount / totalMeetingsCount) * 100) 
+            : 0;
+            
+        // Assign values to DOM structures
+        document.getElementById("dash-stat-meetings").textContent = totalMeetingsCount;
+        document.getElementById("dash-stat-tickets").textContent = deskTicketsCount;
+        document.getElementById("dash-stat-matched-pct").textContent = matchedPercentage + "%";
+        
+    } catch (error) {
+        console.error("Dashboard metrics engine exception error:", error);
+        // Fallback overrides in case database module hasn't recorded rows yet
+        document.getElementById("dash-stat-meetings").textContent = "0";
+        document.getElementById("dash-stat-tickets").textContent = "0";
+        document.getElementById("dash-stat-matched-pct").textContent = "0%";
+    }
+}
+
+async function renderRecentMeetingsActivityFeed() {
+    const feedContainer = document.getElementById("recent-meetings-feed-target");
+    feedContainer.innerHTML = `<div style="padding:16px; font-size:13px; color:var(--color-text-secondary);">Querying timeline feed entries...</div>`;
+    
+    try {
+        const result = await ZOHO.CRM.API.getAllRecords({
+            Entity: "fathomaimeetingnotesintegration0__Meeting_Notes",
+            sort_order: "desc",
+            per_page: 5,
+            page: 1
+        });
+        
+        if (!result || !result.data || result.data.length === 0) {
+            feedContainer.innerHTML = `<div style="padding:24px; text-align:center; font-size:13px; color:var(--color-text-secondary);">No meeting logs found. Complete a call or trigger a manual sync backfill loop.</div>`;
+            return;
+        }
+        
+        let htmlBuffer = "";
+        result.data.forEach(meeting => {
+            const dateStr = meeting.Created_Time ? new Date(meeting.Created_Time).toLocaleDateString() : "Recent Call";
+            // Check if there's a link to a Fathom recording URL, otherwise use a placeholder hash
+            const fathomUrl = meeting.fathomaimeetingnotesintegration0__Fathom_URL || "#";
+            
+            htmlBuffer += `
+                <div class="feed-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--color-border);">
+                    <div>
+                        <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">${meeting.Name}</div>
+                        <div style="font-size:12px; color:var(--color-text-secondary);">Processed: ${dateStr}</div>
+                    </div>
+                    <div>
+                        <a href="${fathomUrl}" target="_blank" class="btn btn-secondary" style="padding:4px 10px; font-size:11px; text-decoration:none; display:inline-block;">Open Fathom</a>
+                    </div>
+                </div>
+            `;
+        });
+        
+        feedContainer.innerHTML = htmlBuffer;
+        
+    } catch (error) {
+        feedContainer.innerHTML = `<div style="padding:16px; font-size:13px; color:var(--color-text-secondary);">No active history logs indexed in your workspace.</div>`;
+    }
+}
+
+async function saveQuickSettingsUpdates() {
+    // 1. Capture user choice configurations directly from checkbox elements
+    configState.desk_enabled = document.getElementById("dash-toggle-desk").checked;
+    configState.capture_matches = document.getElementById("dash-toggle-match").checked;
+    configState.sync_all = document.getElementById("dash-toggle-internal").checked;
+    
+    console.log("Saving setting variations payload layout: ", configState);
+    
+    // 2. Wrap payload payload string configurations package array
+    const savePayload = {
+        apiname: "fathomaimeetingnotesintegration0__Fathom_Config_Data",
+        value: JSON.stringify(configState)
+    };
+    
+    try {
+        // Persist variables back to Zoho CRM core configuration map engine securely
+        const response = await ZOHO.CRM.CONNECTOR.invokeConnector("crm.set", savePayload);
+        console.log("State synchronization persistence response payload:", response);
+        
+        // Trigger visual success indicators if desired (e.g., small toast notifications)
+    } catch (error) {
+        console.error("Critical failure during configuration persistence rewrite routing:", error);
+        alert("Failed to save updated adjustments context. Check user custom permission layers.");
+    }
 }
 
 // Global UI View Router Engine Switcher
@@ -243,13 +365,27 @@ function confirmDestructiveDisconnect() {
     });
 }
 
-function triggerManualSyncAction(btnElement) {
-    btnElement.disabled = true;
-    btnElement.textContent = "Syncing...";
-    setTimeout(() => {
-        btnElement.disabled = false;
-        btnElement.textContent = "Sync Now";
-    }, 2000);
+function triggerManualSyncAction(buttonElement) {
+    const originalText = buttonElement.textContent;
+    buttonElement.disabled = true;
+    buttonElement.textContent = "Syncing...";
+    
+    // Call the Deluge function by name through the Zoho API SDK execution controller
+    ZOHO.CRM.FUNCTIONS.execute("fathomaimeetingnotesintegration0__sync_meetings", {})
+    .then(function(data) {
+        console.log("Manual trigger script execution output context:", data);
+        buttonElement.disabled = false;
+        buttonElement.textContent = originalText;
+        
+        // Refresh metrics and feed logs instantly
+        loadDashboardLayoutView();
+    })
+    .catch(function(error) {
+        console.error("Manual execution trigger failure callback trace:", error);
+        buttonElement.disabled = false;
+        buttonElement.textContent = originalText;
+        alert("Manual sync request encountered exceptions. Check system log files.");
+    });
 }
 
 function saveQuickSettingsUpdates() {
