@@ -20,6 +20,12 @@ let configState = {
     account_name: "Woggle Consulting Account"
 };
 
+// OAuth Infrastructure Configurations
+const clientId = "1000.74A1BT4YA21C75R61O3CBO328AKE2R";
+const scopes = "ZohoDesk.tickets.ALL,ZohoDesk.contacts.ALL,ZohoDesk.agents.ALL"; 
+const redirectUri = "https://woggleconsulting.github.io/fathom-zoho-extension/wd-oauth-callback";
+const delugeRestUrl = "https://plugin-fathomaimeetingnotesintegration0.zohosandbox.com/crm/v7/functions/fathomaimeetingnotesintegration0__exchangeoauthcode/actions/execute?auth_type=apikey&zapikey=1003.0a0d48eb72ca0be4eb70b99e6816b465.b7143d1d0658f626d5ae193057160613";
+
 // Step Flow Tracking Navigation Handler Layer Engine
 function moveStep(targetStepInt) {
     clearInlineErrorAlertBanner();
@@ -61,8 +67,6 @@ function handleTestConnection() {
         "arguments": payloadData
     };
 
-    console.log("Sending clean REST format payload to Zoho:", executionBody.toString(), executionBody);
-
     ZOHO.CRM.FUNCTIONS.execute("fathomaimeetingnotesintegration0__register_fathom_webhook", executionBody)
     .then(function(execData) {
         if (!execData || !execData.details || !execData.details.output) {
@@ -102,7 +106,9 @@ function handleTestConnection() {
 
 function toggleDeskFields(isCheckedBool) {
     const deskFields = document.getElementById("desk-conditional-fields");
+    const authBlock = document.getElementById("desk-oauth-auth-block");
     if(deskFields) deskFields.style.display = isCheckedBool ? "flex" : "none";
+    if(authBlock) authBlock.style.display = isCheckedBool ? "flex" : "none";
 }
 
 // Silent Background Configuration Sequencing Engine Orchestration Layout Layer
@@ -138,7 +144,7 @@ function executeBackgroundSetup() {
                 "action_type": "register_webhook",
                 "config_payload_string": configState
             };
-            executionBody = {
+            let executionBody = {
                 "arguments": JSON.stringify(payloadData)
             };
 
@@ -180,27 +186,22 @@ function handleSetupFailureFallback(errorString) {
 
 // Dashboard View Initializer Module
 async function loadDashboardLayoutView() {
-    // Hide wizard stepper controls header element
     document.getElementById("wz-stepper-header").style.display = "none";
     renderUIStatePanelRoute("panel-dashboard");
     
-    // 1. Assign configuration context text strings
     document.getElementById("dash-profile-name").textContent = configState.account_name || "Connected Profile";
     document.getElementById("dash-last-sync-time").textContent = configState.last_sync_timestamp || "Awaiting incoming syncs...";
     
-    // 2. Synchronize Quick Adjustments Switch states with active config settings
     document.getElementById("dash-toggle-desk").checked = !!configState.desk_enabled;
     document.getElementById("dash-toggle-match").checked = !!configState.capture_matches;
     document.getElementById("dash-toggle-internal").checked = !!configState.sync_all;
 
-    // 3. Populate Interactive Statistics and Recent Activity Stream Lists
     await renderLiveDashboardMetrics();
     await renderRecentMeetingsActivityFeed();
 }
 
 async function renderLiveDashboardMetrics() {
     try {
-        // Fetch raw metrics records from the Custom Module database table layer
         const result = await ZOHO.CRM.API.getAllRecords({
             Entity: "fathomaimeetingnotesintegration0__Meeting_Notes",
             sort_order: "desc",
@@ -215,7 +216,6 @@ async function renderLiveDashboardMetrics() {
         if (result && result.data) {
             totalMeetingsCount = result.data.length;
             
-            // Loop data arrays to dynamically extract context field increments
             result.data.forEach(record => {
                 if (record.fathomaimeetingnotesintegration0__Ticket_ID || record.fathomaimeetingnotesintegration0__Desk_Status) {
                     deskTicketsCount++;
@@ -226,19 +226,16 @@ async function renderLiveDashboardMetrics() {
             });
         }
         
-        // Calculate percentages safely
         const matchedPercentage = totalMeetingsCount > 0 
             ? Math.round((matchedContactsCount / totalMeetingsCount) * 100) 
             : 0;
             
-        // Assign values to DOM structures
         document.getElementById("dash-stat-meetings").textContent = totalMeetingsCount;
         document.getElementById("dash-stat-tickets").textContent = deskTicketsCount;
         document.getElementById("dash-stat-matched-pct").textContent = matchedPercentage + "%";
         
     } catch (error) {
         console.error("Dashboard metrics engine exception error:", error);
-        // Fallback overrides in case database module hasn't recorded rows yet
         document.getElementById("dash-stat-meetings").textContent = "0";
         document.getElementById("dash-stat-tickets").textContent = "0";
         document.getElementById("dash-stat-matched-pct").textContent = "0%";
@@ -265,7 +262,6 @@ async function renderRecentMeetingsActivityFeed() {
         let htmlBuffer = "";
         result.data.forEach(meeting => {
             const dateStr = meeting.Created_Time ? new Date(meeting.Created_Time).toLocaleDateString() : "Recent Call";
-            // Check if there's a link to a Fathom recording URL, otherwise use a placeholder hash
             const fathomUrl = meeting.fathomaimeetingnotesintegration0__Fathom_URL || "#";
             
             htmlBuffer += `
@@ -288,29 +284,52 @@ async function renderRecentMeetingsActivityFeed() {
     }
 }
 
+// REST Token Handshake Trigger Engine
+async function saveCodeToZohoCRM(authCode) {
+    try {
+        const response = await fetch(`${delugeRestUrl}&oauthCode=${authCode}`, {
+            method: 'POST'
+        });
+        const result = await response.json();
+        console.log("Deluge Response:", result);
+        
+        // Dynamic success styling feedback updates
+        document.getElementById("desk-oauth-auth-block").style.background = "#E8F5E9";
+        document.getElementById("desk-oauth-auth-block").style.borderColor = "var(--color-success)";
+        document.getElementById("desk-auth-status-label").innerText = "Authentication Status: Connected ✓";
+        document.getElementById("desk-auth-status-label").style.color = "var(--color-success)";
+        
+        const connectBtn = document.getElementById("connectDeskBtn");
+        if (connectBtn) connectBtn.style.display = "none";
+
+        alert("Desk Connection Successfully Secured!");
+    } catch (error) {
+        console.error("Failed to send code to Deluge:", error);
+        alert("Failed to save authentication details.");
+        const connectBtn = document.getElementById("connectDeskBtn");
+        if (connectBtn) {
+            connectBtn.innerText = "Connect to Desk";
+            connectBtn.disabled = false;
+        }
+    }
+}
+
 async function saveQuickSettingsUpdates() {
-    // 1. Capture user choice configurations directly from checkbox elements
     configState.desk_enabled = document.getElementById("dash-toggle-desk").checked;
     configState.capture_matches = document.getElementById("dash-toggle-match").checked;
     configState.sync_all = document.getElementById("dash-toggle-internal").checked;
     
-    console.log("Saving setting variations payload layout: ", configState);
-    
-    // 2. Wrap payload payload string configurations package array
     const savePayload = {
         apiname: "fathomaimeetingnotesintegration0__Fathom_Config_Data",
         value: JSON.stringify(configState)
     };
     
     try {
-        // Persist variables back to Zoho CRM core configuration map engine securely
         const response = await ZOHO.CRM.CONNECTOR.invokeConnector("crm.set", savePayload);
-        console.log("State synchronization persistence response payload:", response);
-        
-        // Trigger visual success indicators if desired (e.g., small toast notifications)
+        console.log("State persistence response payload:", response);
     } catch (error) {
-        console.error("Critical failure during configuration persistence rewrite routing:", error);
-        alert("Failed to save updated adjustments context. Check user custom permission layers.");
+        console.error("Failure during configuration persistence routing:", error);
+        alert("Failed to save updated adjustments context.");
     }
 }
 
@@ -322,7 +341,6 @@ function renderUIStatePanelRoute(panelIdTarget) {
     if(activePanel) activePanel.classList.add("active");
 }
 
-// Inline Alert Modifiers UI
 function showInlineErrorAlertBanner(messageText) {
     const banner = document.getElementById("error-alert-banner");
     if(banner) {
@@ -337,7 +355,6 @@ function clearInlineErrorAlertBanner() {
     if(banner) banner.style.display = "none";
 }
 
-// Overlay Modals Controllers
 function triggerDisconnectModal() {
     document.getElementById("modal-container").style.display = "flex";
     document.getElementById("modal-confirm-btn").onclick = confirmDestructiveDisconnect;
@@ -370,64 +387,78 @@ function triggerManualSyncAction(buttonElement) {
     buttonElement.disabled = true;
     buttonElement.textContent = "Syncing...";
     
-    // Call the Deluge function by name through the Zoho API SDK execution controller
     ZOHO.CRM.FUNCTIONS.execute("fathomaimeetingnotesintegration0__sync_meetings", {})
     .then(function(data) {
-        console.log("Manual trigger script execution output context:", data);
         buttonElement.disabled = false;
         buttonElement.textContent = originalText;
-        
-        // Refresh metrics and feed logs instantly
         loadDashboardLayoutView();
     })
     .catch(function(error) {
-        console.error("Manual execution trigger failure callback trace:", error);
+        console.error("Manual execution trigger failure:", error);
         buttonElement.disabled = false;
         buttonElement.textContent = originalText;
-        alert("Manual sync request encountered exceptions. Check system log files.");
+        alert("Manual sync request encountered exceptions.");
     });
 }
 
-function saveQuickSettingsUpdates() {
-    console.log("Real-time telemetry metrics modifications intercepted and tracked mapping configurations locally.");
-}
-
+// Initialize Zoho Embedded Core Handshake
 console.log("App.js loaded. Initializing Zoho SDK Handshake...");
 
 ZOHO.embeddedApp.init().then(function() {
     console.log("Zoho SDK connection established successfully.");
     
-    const errorBanner = document.getElementById("error-alert-banner");
-    if (errorBanner) {
-        errorBanner.style.display = "none";
-    }
-    
-    const step1Panel = document.getElementById("panel-step-1");
-    if (step1Panel) {
-        step1Panel.classList.add("active");
-    }
+    // Safety UI reset states
+    clearInlineErrorAlertBanner();
+    renderUIStatePanelRoute("panel-step-1");
     
     const testBtn = document.getElementById("btn-test-connection");
-    if (testBtn) {
-        testBtn.disabled = false;
+    if (testBtn) testBtn.disabled = false;
+
+    // WIRE UP DESK OAUTH TRIGGER SAFELY INSIDE RUNTIME INITIALIZATION
+    const connectDeskBtn = document.getElementById("connectDeskBtn");
+    if (connectDeskBtn) {
+        connectDeskBtn.addEventListener("click", () => {
+            const authUrl = `https://accounts.zoho.com/oauth/v2/auth?scope=${scopes}&client_id=${clientId}&response_type=code&access_type=offline&redirect_uri=${encodeURIComponent(redirectUri)}&prompt=consent&state=zd_connect`;
+            const popup = window.open(authUrl, "ZohoDeskAuth", "width=600,height=700");
+
+            connectDeskBtn.innerText = "Authorizing...";
+            connectDeskBtn.disabled = true;
+
+            window.addEventListener("message", async function oauthListener(event) {
+                if (event.origin !== "https://woggleconsulting.github.io") return;
+
+                const data = event.data;
+                if (data && data.type === 'zd_oauth') {
+                    window.removeEventListener("message", oauthListener);
+                    popup.close();
+
+                    if (data.error) {
+                        console.error("User denied authentication:", data.error);
+                        alert("Connection failed: " + data.error);
+                        connectDeskBtn.innerText = "Connect to Desk";
+                        connectDeskBtn.disabled = false;
+                        return;
+                    }
+
+                    if (data.code) {
+                        console.log("Captured Authorization Code for Desk:", data.code);
+                        await saveCodeToZohoCRM(data.code);
+                    }
+                }
+            });
+        });
     }
 
+    // Auto-detect environment location parameters
     ZOHO.CRM.CONFIG.getOrgInfo().then(function(orgDetails) {
         if (orgDetails && orgDetails.org && orgDetails.org.api_domain) {
             const detectedDomain = orgDetails.org.api_domain;
-            console.log("Detected User Datacenter Domain Location:", detectedDomain);
-
-            // Execute a completely silent function call to lock this variable into CRM
             ZOHO.CRM.FUNCTIONS.execute("fathomaimeetingnotesintegration0__register_fathom_webhook", {
                 "arguments": JSON.stringify({
                     "action_type": "save_api_domain",
                     "api_domain_value": detectedDomain
                 })
-            })
-            .then(res => console.log("Silent domain mapping updated successfully."))
-            .catch(err => console.error("Silent domain mapping failure:", err));
+            });
         }
     });
-    
-    console.log("Widget is fully booted and ready for user interaction.");
 });

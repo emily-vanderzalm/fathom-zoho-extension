@@ -233,6 +233,14 @@
                     <span class="slider"></span>
                 </label>
             </div>
+            
+            <div id="desk-oauth-auth-block" style="margin-top: 14px; padding: 12px; background: #F0F4F8; border: 1px dashed #B0C4DE; border-radius: 6px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <span style="font-size: 13px; font-weight: 500; display: block;" id="desk-auth-status-label">Authentication Status: Unconnected</span>
+                    <span style="font-size: 11px; color: var(--color-text-secondary);" id="desk-auth-status-desc">Authorize background API ticket generation permissions.</span>
+                </div>
+                <button type="button" class="btn btn-primary" id="connectDeskBtn" style="padding: 6px 14px; font-size: 12px;" onclick="handleDeskOAuthAuthentication()">Connect to Desk</button>
+            </div>
         </div>
 
         <div class="flex-row-layout" id="desk-conditional-fields">
