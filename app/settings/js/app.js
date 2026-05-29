@@ -22,8 +22,8 @@ let configState = {
 
 // OAuth Infrastructure Configurations
 const clientId = "1000.74A1BT4YA21C75R61O3CBO328AKE2R";
-const scopes = "ZohoDesk.tickets.ALL,ZohoDesk.contacts.ALL,ZohoDesk.agents.ALL"; 
-const redirectUri = "https://woggleconsulting.github.io/fathom-zoho-extension/wd-oauth-callback";
+const scopes = "ZohoDesk.tickets.all ZohoDesk.contacts.all ZohoDesk.agents.all";
+const redirectUri = "https://emily-vanderzalm.github.io/fathom-zoho-extension/wd-oauth-callback";
 const delugeRestUrl = "https://plugin-fathomaimeetingnotesintegration0.zohosandbox.com/crm/v7/functions/fathomaimeetingnotesintegration0__exchangeoauthcode/actions/execute?auth_type=apikey&zapikey=1003.0a0d48eb72ca0be4eb70b99e6816b465.b7143d1d0658f626d5ae193057160613";
 
 // Step Flow Tracking Navigation Handler Layer Engine
@@ -425,7 +425,7 @@ ZOHO.embeddedApp.init().then(function() {
             connectDeskBtn.disabled = true;
 
             window.addEventListener("message", async function oauthListener(event) {
-                if (event.origin !== "https://woggleconsulting.github.io") return;
+                if (event.origin !== "https://emily-vanderzalm.github.io") return;
 
                 const data = event.data;
                 if (data && data.type === 'zd_oauth') {
